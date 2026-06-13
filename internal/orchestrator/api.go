@@ -311,7 +311,7 @@ func (o *Orchestrator) callVertexAIStreaming(ctx context.Context, model *ModelSp
 		return nil, err
 	}
 
-	vertexModel := o.mapVertexModelName(model.Model)
+	vertexModel := model.Model
 
 	contents, systemInstructionText := convertMessagesToVertexContents(messages)
 	if len(contents) == 0 {
@@ -386,7 +386,7 @@ func (o *Orchestrator) callVertexAI(ctx context.Context, model *ModelSpec, messa
 		return nil, fmt.Errorf("Vertex AI client not initialized")
 	}
 
-	vertexModel := o.mapVertexModelName(model.Model)
+	vertexModel := model.Model
 
 	contents, systemInstructionText := convertMessagesToVertexContents(messages)
 	if len(contents) == 0 {
@@ -758,7 +758,7 @@ func (o *Orchestrator) callVertexAIChatToolsStreaming(ctx context.Context, model
 		return nil, fmt.Errorf("Vertex AI client not initialized")
 	}
 
-	vertexModel := o.mapVertexModelName(model.Model)
+	vertexModel := model.Model
 
 	contents, systemInstructionText := convertMessagesToVertexContents(messages)
 	if len(contents) == 0 {
