@@ -45,6 +45,12 @@ go run ./cmd/server
 - **Multi-User Support**: Households can share or have separate ledgers
 - **Beautiful UI**: Modern dark theme with Tailwind CSS
 
+## Connecting Claude
+
+Connect Claude Code or Claude Desktop to Probably's MCP server and ask about your
+real finances. See the step-by-step guide:
+[docs/claude-code/README.md](docs/claude-code/README.md).
+
 ## Tech Stack
 
 - **Backend**: Go with Chi router
