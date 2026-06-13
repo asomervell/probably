@@ -1,0 +1,43 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  # Build command - run Tailwind first (if available), then build Go
+  # Tailwind is optional - build will proceed even if ./bin/tailwindcss doesn't exist
+  cmd = "([ -f ./bin/tailwindcss ] && ./bin/tailwindcss -i ./static/input.css -o ./static/output.css || true) && go build -o ./tmp/app ./cmd/server"
+  # Entrypoint (binary to run)
+  entrypoint = ["./tmp/app"]
+  # Watch these directories
+  include_ext = ["go", "tpl", "tmpl", "html", "sql", "css"]
+  exclude_dir = ["assets", "tmp", "vendor", "node_modules", "frontend", "build", ".git"]
+  # Exclude generated files and worker's binary
+  exclude_file = ["static/output.css", "tmp/worker/main"]
+  exclude_regex = ["_test.go"]
+  exclude_unchanged = true
+  follow_symlink = false
+  # Delay before rebuild (ms)
+  delay = 1000
+  # Don't stop on error - keep trying to rebuild (errors will be visible in logs)
+  stop_on_error = false
+  # Log file (empty = stdout)
+  log = ""
+  # Send interrupt signal before killing
+  send_interrupt = true
+  # Kill delay (how long to wait after sending interrupt)
+  kill_delay = 500
+
+[log]
+  # Show log time
+  time = false
+  # Show all logs (watcher, build, runner) so we can see build errors
+  main_only = false
+
+[color]
+  main = "magenta"
+  watcher = "cyan"
+  build = "yellow"
+  runner = "green"
+
+[misc]
+  # Delete tmp directory on exit
+  clean_on_exit = true

@@ -1,0 +1,56 @@
+{
+  "_note": "This is a static fallback copy. The live, always-current version is served (unauthenticated) at https://YOUR_PROBABLY_HOST/.well-known/mcp-client-config — fetch that to get the real base URL and current tool list. Replace YOUR_PROBABLY_HOST below with your Probably MCP host.",
+  "claude_desktop": {
+    "mcpServers": {
+      "probably": {
+        "url": "https://YOUR_PROBABLY_HOST/mcp"
+      }
+    }
+  },
+  "claude_code_cli": "claude mcp add probably https://YOUR_PROBABLY_HOST/mcp",
+  "auth": {
+    "type": "oauth2",
+    "discovery_url": "https://YOUR_PROBABLY_HOST/.well-known/oauth-authorization-server",
+    "scopes": [
+      "read:transactions",
+      "read:accounts",
+      "read:financial",
+      "read:patterns"
+    ]
+  },
+  "server": {
+    "name": "probably-mcp",
+    "version": "1.0.0",
+    "url": "https://YOUR_PROBABLY_HOST/mcp"
+  },
+  "tools": [
+    {
+      "name": "get_spending_summary",
+      "description": "Get a summary of spending by category and time period."
+    },
+    {
+      "name": "get_account_balances",
+      "description": "Get current account balances, net worth, assets, and liabilities."
+    },
+    {
+      "name": "ask_question",
+      "description": "Ask a natural-language question about your finances and get an AI-powered answer."
+    },
+    {
+      "name": "get_spending_trends",
+      "description": "Get spending trends over time."
+    },
+    {
+      "name": "get_recurring_patterns",
+      "description": "Get recurring transactions and subscription patterns."
+    },
+    {
+      "name": "search_transactions",
+      "description": "Search transactions by keyword."
+    },
+    {
+      "name": "get_financial_overview",
+      "description": "Get a full financial overview combining balances and recent activity."
+    }
+  ]
+}

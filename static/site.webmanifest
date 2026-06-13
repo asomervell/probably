@@ -1,0 +1,21 @@
+{
+  "name": "Probably",
+  "short_name": "Probably",
+  "description": "Simple personal finance tracking",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#14120b",
+  "theme_color": "#14120b",
+  "icons": [
+    {
+      "src": "/static/favicon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/favicon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

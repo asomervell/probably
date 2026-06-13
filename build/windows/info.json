@@ -1,0 +1,19 @@
+{
+  "fixed": {
+    "file_version": "1.0.0.0"
+  },
+  "info": {
+    "0409": {
+      "Comments": "Personal finance tracking",
+      "CompanyName": "Probably",
+      "FileDescription": "Probably - Personal Finance",
+      "FileVersion": "1.0.0.0",
+      "InternalName": "Probably",
+      "LegalCopyright": "Copyright 2025",
+      "OriginalFilename": "Probably.exe",
+      "ProductName": "Probably",
+      "ProductVersion": "1.0.0.0"
+    }
+  }
+}
+

@@ -1,0 +1,52 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgres://finance:secret@db:5432/finance?sslmode=disable
+      - SESSION_SECRET=${SESSION_SECRET:-change-me-in-production-32-chars!!}
+      - COOKIE_DOMAIN=localhost
+      - BASE_URL=http://localhost:8080
+      - TELLER_APP_ID=${TELLER_APP_ID:-}
+      - TELLER_ENVIRONMENT=${TELLER_ENVIRONMENT:-sandbox}
+      - TELLER_CERT=${TELLER_CERT:-}
+      - TELLER_KEY=${TELLER_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM=${SMTP_FROM:-noreply@example.com}
+      - STRIPE_PUBLIC=${STRIPE_PUBLIC:-}
+      - STRIPE_SECRET=${STRIPE_SECRET:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_PRICE_MONTHLY=${STRIPE_PRICE_MONTHLY:-}
+      - STRIPE_PRICE_ANNUAL=${STRIPE_PRICE_ANNUAL:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    build:
+      context: .
+      dockerfile: db.Dockerfile
+    volumes:
+      - pgdata:/var/lib/postgresql
+    environment:
+      - POSTGRES_DB=finance
+      - POSTGRES_USER=finance
+      - POSTGRES_PASSWORD=secret
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finance -d finance"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+

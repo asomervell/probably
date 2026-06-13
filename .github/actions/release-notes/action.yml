@@ -1,0 +1,313 @@
+name: 'Generate Release Notes'
+description: 'Generates release notes using Cursor AI with fallback to commit messages'
+
+inputs:
+  version:
+    description: 'The version tag (e.g., v1.2.3)'
+    required: true
+  cursor_api_key:
+    description: 'Cursor API key for AI-generated notes'
+    required: false
+    default: ''
+
+outputs:
+  cursor_failed:
+    description: 'Whether Cursor generation failed'
+    value: ${{ steps.cursor.outputs.cursor_failed }}
+  cursor_success:
+    description: 'Whether Cursor generation succeeded'
+    value: ${{ steps.cursor.outputs.cursor_success }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Prepare release context
+      id: context
+      shell: bash
+      run: |
+        # Fetch tags to ensure we have the latest
+        git fetch --tags
+        
+        CURRENT_TAG="${{ inputs.version }}"
+        
+        # Get the previous semantic version tag (skip the current one)
+        PREV_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "^${CURRENT_TAG}$" | head -1)
+        
+        echo "Current tag: $CURRENT_TAG"
+        echo "Previous tag: ${PREV_TAG:-none}"
+        
+        # Check if current tag exists as a git ref (it may not for pre-release versions)
+        # If not, use HEAD instead since the tag will be created after this action
+        if git rev-parse "$CURRENT_TAG" >/dev/null 2>&1; then
+          COMMIT_REF="$CURRENT_TAG"
+        else
+          echo "Tag $CURRENT_TAG doesn't exist yet, using HEAD"
+          COMMIT_REF="HEAD"
+        fi
+        
+        # Get commits for this release
+        if [ -n "$PREV_TAG" ]; then
+          COMMITS=$(git log ${PREV_TAG}..${COMMIT_REF} --pretty=format:"%H|%s|%b" --reverse)
+          COMMIT_RANGE="${PREV_TAG}..${COMMIT_REF}"
+        else
+          COMMITS=$(git log ${COMMIT_REF} --pretty=format:"%H|%s|%b" --reverse)
+          COMMIT_RANGE="${COMMIT_REF}"
+        fi
+        
+        # Save commit info
+        echo "commits<<EOF" >> $GITHUB_OUTPUT
+        echo "$COMMITS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+        echo "current_tag=$CURRENT_TAG" >> $GITHUB_OUTPUT
+        echo "prev_tag=${PREV_TAG:-}" >> $GITHUB_OUTPUT
+        echo "commit_range=$COMMIT_RANGE" >> $GITHUB_OUTPUT
+        echo "commit_ref=$COMMIT_REF" >> $GITHUB_OUTPUT
+
+    - name: Install Cursor CLI
+      shell: bash
+      run: |
+        curl https://cursor.com/install -fsS | bash
+        echo "$HOME/.cursor/bin" >> $GITHUB_PATH
+
+    - name: Generate release notes with Cursor
+      id: cursor
+      shell: bash
+      env:
+        CURSOR_API_KEY: ${{ inputs.cursor_api_key }}
+      continue-on-error: true
+      run: |
+        CURRENT_TAG="${{ steps.context.outputs.current_tag }}"
+        PREV_TAG="${{ steps.context.outputs.prev_tag }}"
+        COMMIT_RANGE="${{ steps.context.outputs.commit_range }}"
+        COMMIT_REF="${{ steps.context.outputs.commit_ref }}"
+        
+        # Check if Cursor API key is set
+        if [ -z "$CURSOR_API_KEY" ]; then
+          echo "⚠️ Warning: CURSOR_API_KEY not set. Falling back to commit message-based release notes."
+          echo "cursor_failed=true" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        
+        echo "✅ CURSOR_API_KEY is set, generating release notes..."
+        
+        # Get commit details for context
+        if [ -n "$PREV_TAG" ]; then
+          COMMIT_LIST=$(git log ${PREV_TAG}..${COMMIT_REF} --pretty=format:"- %h: %s%n  %b" --reverse | head -100)
+          CHANGED_FILES=$(git diff --name-status ${PREV_TAG}..${COMMIT_REF} | head -50)
+        else
+          COMMIT_LIST=$(git log ${COMMIT_REF} --pretty=format:"- %h: %s%n  %b" --reverse | head -100)
+          CHANGED_FILES=$(git diff --name-status ${COMMIT_REF} | head -50)
+        fi
+        
+        # Build the prompt for Cursor agent
+        {
+          echo "You are generating release notes for version ${CURRENT_TAG} of the Probably personal finance application."
+          echo ""
+          echo "Previous version: ${PREV_TAG:-none (first release)}"
+          echo "Commit range: ${COMMIT_RANGE}"
+          echo ""
+          echo "COMMITS IN THIS RELEASE:"
+          echo "${COMMIT_LIST}"
+          echo ""
+          echo "CHANGED FILES:"
+          echo "${CHANGED_FILES}"
+          echo ""
+          echo "YOUR TASK:"
+          echo "1. Analyze ALL the code changes in this release (read the actual files that changed)"
+          echo "2. Review the commit messages above to understand what changed"
+          echo "3. Create comprehensive, polished release notes"
+          echo ""
+          echo "IMPORTANT: The GitHub release already has a title 'Release ${CURRENT_TAG}' set separately."
+          echo "DO NOT start your notes with '# Release ${CURRENT_TAG}' - that would be redundant."
+          echo "Start directly with the metadata (Date, Previous Version, etc.) or content."
+          echo ""
+          echo "Format:"
+          echo "**Date:** YYYY-MM-DD"
+          echo "**Previous Version:** ${PREV_TAG:-N/A}"
+          echo "**Commit Range:** ${COMMIT_RANGE}"
+          echo ""
+          echo "[Brief introduction paragraph explaining the release]"
+          echo ""
+          echo "## ✨ Features (if any)"
+          echo "- Detailed description of feature"
+          echo ""
+          echo "## 🐛 Bug Fixes (if any)"
+          echo "- Description and impact of fix"
+          echo ""
+          echo "## Technical Details"
+          echo "- Database migrations, API changes, etc."
+          echo ""
+          echo "Guidelines:"
+          echo "- Group related features together logically"
+          echo "- Write clear, user-friendly descriptions"
+          echo "- Use proper markdown formatting with emojis"
+          echo "- Be comprehensive but concise"
+          echo "- Focus on user-facing changes and improvements"
+          echo ""
+          echo "CRITICAL: Write the release notes to RELEASE_NOTES.md in the current working directory."
+          echo "Use the Write tool to create/overwrite RELEASE_NOTES.md."
+        } > /tmp/cursor-prompt.txt
+        
+        PROMPT=$(cat /tmp/cursor-prompt.txt)
+        
+        # Create placeholder file
+        echo "# Placeholder - Cursor will replace this" > RELEASE_NOTES.md
+        
+        # Run Cursor agent
+        timeout 300 cursor-agent -p "$PROMPT" --model auto 2>&1 | tee /tmp/cursor-output.log
+        CURSOR_EXIT_CODE=${PIPESTATUS[0]}
+        
+        # Validate output
+        if [ -f "RELEASE_NOTES.md" ]; then
+          FILE_SIZE=$(wc -c < RELEASE_NOTES.md)
+          FILE_CONTENT=$(cat RELEASE_NOTES.md)
+          
+          if echo "$FILE_CONTENT" | grep -q "Placeholder - Cursor will replace this"; then
+            echo "❌ Cursor did not write to file"
+            echo "cursor_failed=true" >> $GITHUB_OUTPUT
+          elif [ $FILE_SIZE -lt 200 ]; then
+            echo "❌ Release notes too short ($FILE_SIZE bytes)"
+            echo "cursor_failed=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Release notes generated successfully!"
+            cat RELEASE_NOTES.md
+            echo "cursor_success=true" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "❌ RELEASE_NOTES.md does not exist"
+          echo "cursor_failed=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Generate fallback release notes
+      if: steps.cursor.outputs.cursor_failed == 'true' || steps.cursor.outcome == 'failure'
+      shell: bash
+      run: |
+        CURRENT_TAG="${{ steps.context.outputs.current_tag }}"
+        PREV_TAG="${{ steps.context.outputs.prev_tag }}"
+        COMMITS="${{ steps.context.outputs.commits }}"
+        
+        echo "📝 Generating fallback release notes from commit messages..."
+        
+        # Categorize commits
+        FEATURES=""
+        FIXES=""
+        BREAKING=""
+        OTHER=""
+        
+        while IFS='|' read -r hash subject body; do
+          # Skip commits with empty hash or subject
+          [ -z "$hash" ] && continue
+          subject=$(echo "$subject" | xargs)  # Trim whitespace
+          [ -z "$subject" ] && continue
+          
+          # Determine the release note content
+          formatted_note=""
+          
+          if [ -n "$body" ]; then
+            # Clean body: trim whitespace and remove empty lines
+            body_cleaned=$(echo "$body" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//' | grep -v '^$' | head -20)
+            
+            # Skip if body is empty after cleaning
+            if [ -n "$body_cleaned" ]; then
+              # If body has bullet points, preserve them
+              if echo "$body_cleaned" | grep -qE '^[-*]'; then
+                # Process each line, ensuring proper bullet format
+                while IFS= read -r line; do
+                  line=$(echo "$line" | xargs)  # Trim whitespace
+                  [ -z "$line" ] && continue
+                  if echo "$line" | grep -qE '^[-*]'; then
+                    formatted_note="${formatted_note}${line}\n"
+                  else
+                    formatted_note="${formatted_note}- ${line}\n"
+                  fi
+                done <<< "$body_cleaned"
+              else
+                # No bullets in body, format as single bullet point
+                formatted_note="- ${body_cleaned}\n"
+              fi
+            fi
+          fi
+          
+          # If no body content, use subject (with prefix stripped)
+          if [ -z "$formatted_note" ]; then
+            release_note=$(echo "$subject" | sed 's/^[^:]*: *//' | xargs)
+            if [ -n "$release_note" ]; then
+              formatted_note="- ${release_note}\n"
+            fi
+          fi
+          
+          # Final validation: skip if still empty or just whitespace/newlines
+          formatted_note_check=$(echo -e "$formatted_note" | tr -d '[:space:]-*')
+          [ -z "$formatted_note_check" ] && continue
+          
+          # Categorize based on subject prefix
+          if echo "$subject" | grep -qE '^feat!|^fix!|BREAKING CHANGE:'; then
+            BREAKING="${BREAKING}${formatted_note}"
+          elif echo "$subject" | grep -qE '^feat:'; then
+            FEATURES="${FEATURES}${formatted_note}"
+          elif echo "$subject" | grep -qE '^fix:'; then
+            FIXES="${FIXES}${formatted_note}"
+          elif echo "$subject" | grep -qE '^(chore|docs|style|refactor|test|perf):'; then
+            # Skip maintenance commits entirely
+            continue
+          else
+            # Only add to OTHER if there's actual meaningful content
+            OTHER="${OTHER}${formatted_note}"
+          fi
+        done <<< "$COMMITS"
+        
+        # Build release notes - only include sections with actual content
+        # Note: Don't include "# Release X" header - GitHub release already has that as title
+        RELEASE_NOTES="**Version:** ${CURRENT_TAG}\n"
+        if [ -n "$PREV_TAG" ]; then
+          RELEASE_NOTES="${RELEASE_NOTES}**Previous:** ${PREV_TAG}\n\n"
+        else
+          RELEASE_NOTES="${RELEASE_NOTES}\n"
+        fi
+        
+        # Helper function to check if content is non-empty (not just whitespace/bullets)
+        has_content() {
+          local content="$1"
+          local check=$(echo -e "$content" | tr -d '[:space:]-*')
+          [ -n "$check" ]
+        }
+        
+        if has_content "$BREAKING"; then
+          RELEASE_NOTES="${RELEASE_NOTES}## ⚠️ Breaking Changes\n\n${BREAKING}\n"
+        fi
+        
+        if has_content "$FEATURES"; then
+          RELEASE_NOTES="${RELEASE_NOTES}## ✨ Features\n\n${FEATURES}\n"
+        fi
+        
+        if has_content "$FIXES"; then
+          RELEASE_NOTES="${RELEASE_NOTES}## 🐛 Bug Fixes\n\n${FIXES}\n"
+        fi
+        
+        if has_content "$OTHER"; then
+          RELEASE_NOTES="${RELEASE_NOTES}## 📝 Other Changes\n\n${OTHER}\n"
+        fi
+        
+        if [ -n "$PREV_TAG" ]; then
+          RELEASE_NOTES="${RELEASE_NOTES}**Full Changelog:** ${PREV_TAG}...${CURRENT_TAG}"
+        else
+          RELEASE_NOTES="${RELEASE_NOTES}**Full Changelog:** ${CURRENT_TAG}"
+        fi
+        
+        # Write to file
+        echo -e "$RELEASE_NOTES" > RELEASE_NOTES.md
+        
+        echo "✅ Fallback release notes generated"
+        cat RELEASE_NOTES.md
+
+    - name: Verify release notes
+      shell: bash
+      run: |
+        if [ ! -f RELEASE_NOTES.md ]; then
+          echo "❌ Error: RELEASE_NOTES.md does not exist!"
+          exit 1
+        fi
+        echo "✅ RELEASE_NOTES.md exists"
+        echo "Preview:"
+        head -30 RELEASE_NOTES.md

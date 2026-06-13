@@ -1,0 +1,112 @@
+# Release Notes
+
+This directory contains release notes for all versions of Probably.
+
+## All Releases
+
+- [v1.3.0](v1.3.0.md) - 2025-12-31 - Multi-provider bank connections, AI Chat assistant, and Multi-Model Orchestrator
+- [v1.2.7](v1.2.7.md) - 2025-12-30 - Fix gcloud run deploy env vars formatting
+- [v1.2.6](v1.2.6.md) - 2025-12-30 - Prevent retrying Vertex AI permission errors to reduce costs
+- [v1.2.5](v1.2.5.md) - 2025-12-30 - Resolve merge conflicts and exclude past bills from Pulse calculations
+- [v1.2.3](v1.2.3.md) - 2025-12-30 - Resolve critical itoa bug and improve code quality
+- [v1.2.2](v1.2.2.md) - 2025-12-30 - Prefer apple-touch-icon over og:image for logo extraction
+- [v1.2.1](v1.2.1.md) - 2025-12-30 - Remove unused enrichment code and fix Vertex AI SDK integration
+- [v1.2.0](v1.2.0.md) - 2025-12-30 - Migrate from merchants to entities and update related functionality
+- [v1.1.0](v1.1.0.md) - 2025-12-30 - Add LLM tool calling framework for AI chat assistant
+- [v1.0.0](v1.0.0.md) - 2025-12-30 - Remove Bud transaction enrichment integration (breaking change)
+- [v0.16.0](v0.16.0.md) - 2025-12-29 - Restructure pages - add Pulse dashboard, rename Intelligence to Statements
+- [v0.15.0](v0.15.0.md) - 2025-12-29 - Add Latest blog section and redesign homepage value props
+- [v0.14.0](v0.14.0.md) - 2025-12-29 - Generate Cursor release notes for all releases including pre-releases
+- [v0.12.0](v0.12.0.md) - 2025-12-29 - Use Cursor CLI for automated release notes generation
+- [v0.11.0](v0.11.0.md) - 2025-12-29 - Improve Firecrawl country hints with transaction description context
+- [v0.10.1](v0.10.1.md) - 2025-12-29 - Fix release notes generation to use previous tag
+- [v0.10.0](v0.10.0.md) - 2025-12-29 - Add automatic release notes generation from conventional commits
+- [v0.9.1](v0.9.1.md) - 2025-12-29 - Configure git identity before creating semantic version tags
+- [v0.9.0](v0.9.0.md) - 2025-12-29 - Implement automatic semantic versioning from commit messages
+- [v0.8.20](v0.8.20.md) - 2025-12-29 - Remove one-off utility scripts and commands
+- [v0.8.19](v0.8.19.md) - 2025-12-29 - Reject .ico files and remove Bud logo fallback
+- [v0.8.18](v0.8.18.md) - 2025-12-29 - Fix static file serving in Docker containers
+- [v0.8.17](v0.8.17.md) - 2025-12-29 - Add verbose logging for CSS inclusion and handle cache warnings
+- [v0.8.16](v0.8.16.md) - 2025-12-29 - Add CSS verification and fix artifact download path
+- [v0.8.15](v0.8.15.md) - 2025-12-29 - Fix gcloud authentication order in workflow
+- [v0.8.14](v0.8.14.md) - 2025-12-29 - Create GitHub releases for all deployments
+- [v0.8.13](v0.8.13.md) - 2025-12-29 - Ensure logo.dev is always attempted and fix CSS build in GitHub Actions
+- [v0.8.12](v0.8.12.md) - 2025-12-29 - Refactor deploy workflow: separate build and deploy with caching and semver releases
+- [v0.8.11](v0.8.11.md) - 2025-12-29 - Remove local storage fallback - always use cloud storage (GCS/S3)
+- [v0.8.10](v0.8.10.md) - 2025-12-29 - Suppress directory creation warnings in cloud environments
+- [v0.8.9](v0.8.9.md) - 2025-12-29 - Improve Teller certificate decoding: trim whitespace and better error messages
+- [v0.8.8](v0.8.8.md) - 2025-12-29 - Fix Teller certificate loading to prefer base64 from env vars over file paths
+- [v0.8.7](v0.8.7.md) - 2025-12-29 - Add debug output for DATABASE_URL in deployment
+- [v0.8.6](v0.8.6.md) - 2025-12-29 - Add Cloud SQL instance connection to deployment
+- [v0.8.5](v0.8.5.md) - 2025-12-29 - Add validation for DATABASE_URL secret in deployment workflow
+- [v0.8.4](v0.8.4.md) - 2025-12-29 - Update deploy workflow to match GitHub secrets/variables
+- [v0.8.3](v0.8.3.md) - 2025-12-29 - Refactor logo URL handling and cleanup utility scripts
+- [v0.8.2](v0.8.2.md) - 2025-12-29 - Store only filenames in database, construct CDN URLs at display time
+- [v0.8.1](v0.8.1.md) - 2025-12-29 - Add P2P detection to processing worker and remove old categorize worker
+- [v0.8.0](v0.8.0.md) - 2025-12-28 - Add P2P transfers, institution logos, tag exclusions, and transaction review tracking
+- [v0.7.6](v0.7.6.md) - 2025-12-28 - Add goose statement delimiters for DO block in migration 022
+- [v0.7.5](v0.7.5.md) - 2025-12-28 - Add --no-cache to docker build to fix cached corrupt layer
+- [v0.7.4](v0.7.4.md) - 2025-12-28 - Resolve linter errors in shadcn components
+- [v0.7.3](v0.7.3.md) - 2025-12-28 - Add shadcn/ui component library integration using gomponents
+- [v0.7.2](v0.7.2.md) - 2025-12-28 - Improve Teller sync reliability and timestamp tracking
+- [v0.7.1](v0.7.1.md) - 2025-12-28 - Fix Cloud Run deployment and Cloud SQL PG18 compatibility
+- [v0.7.0](v0.7.0.md) - 2025-12-27 - Switch to xAI Grok, add fast-path enrichment, and improve localization
+- [v0.6.0](v0.6.0.md) - 2025-12-27 - Add insights system, merchant search, and enrichment improvements
+- [v0.5.5](v0.5.5.md) - 2025-12-27 - Add Bud enrichment integration and merchant management
+- [v0.5.4](v0.5.4.md) - 2025-12-26 - Remove hover quick actions from transaction list
+- [v0.5.3](v0.5.3.md) - 2025-12-26 - Fix mobile tab bar styling - use backdrop blur and simplify design
+- [v0.5.2](v0.5.2.md) - 2025-12-26 - Improve UI consistency and mobile experience
+- [v0.5.1](v0.5.1.md) - 2025-12-26 - Improve mobile UI and settings consistency
+- [v0.5.0](v0.5.0.md) - 2025-12-26 - Add danger zone settings for account/data deletion
+- [v0.4.2](v0.4.2.md) - 2025-12-26 - Increase server timeouts for backup import, add install.sh to Docker
+- [v0.4.1](v0.4.1.md) - 2025-12-26 - Improve env.example with better organization and comments
+- [v0.4.0](v0.4.0.md) - 2025-12-29 - Major release with multiple features, bug fixes, and improvements
+- [v0.3.5](v0.3.5.md) - 2025-12-26 - Flatten project structure
+- [v0.3.4](v0.3.4.md) - 2025-12-26 - Remove .secure from history, add Teller setup script
+- [v0.3.3](v0.3.3.md) - 2025-12-26 - Add backup functionality and security improvements
+- [v0.3.2](v0.3.2.md) - 2025-12-26 - WIP: Install script development
+- [v0.3.1](v0.3.1.md) - 2025-12-29 - Fix release notes generation to use previous tag
+- [v0.3.0](v0.3.0.md) - 2025-12-29 - Add automatic release notes generation from conventional commits
+- [v0.2.0](v0.2.0.md) - 2025-12-29 - Major release with install script, insights, enrichment, P2P transfers, and semantic versioning
+- [v0.1.41](v0.1.41.md) - 2025-12-26 - Rewrite README with one-command quick start
+- [v0.1.40](v0.1.40.md) - 2025-12-26 - Rewrite README with one-command quick start
+- [v0.1.39](v0.1.39.md) - 2025-12-26 - Add backup and restore functionality
+- [v0.1.38](v0.1.38.md) - 2025-12-26 - Add backup and restore functionality
+- [v0.1.37](v0.1.37.md) - 2025-12-26 - Add Cloud SQL connection to Cloud Run deployment
+- [v0.1.36](v0.1.36.md) - 2025-12-26 - Add Cloud SQL connection to Cloud Run deployment
+- [v0.1.35](v0.1.35.md) - 2025-12-26 - Fix gitignore to not exclude cmd/server source
+- [v0.1.34](v0.1.34.md) - 2025-12-26 - Fix gitignore to not exclude cmd/server source
+- [v0.1.33](v0.1.33.md) - 2025-12-26 - Load .env file in server startup
+- [v0.1.32](v0.1.32.md) - 2025-12-26 - Load .env file in server startup
+- [v0.1.31](v0.1.31.md) - 2025-12-26 - Remove duplicate headers in settings pages
+- [v0.1.30](v0.1.30.md) - 2025-12-26 - Remove duplicate headers in settings pages
+- [v0.1.29](v0.1.29.md) - 2025-12-26 - Fix Cloud Run deployment to use us-west1 region
+- [v0.1.28](v0.1.28.md) - 2025-12-26 - Fix Cloud Run deployment to use us-west1 region
+- [v0.1.27](v0.1.27.md) - 2025-12-26 - Fix GitHub Actions workflow to use vars.GCP_PROJECT_ID instead of secrets
+- [v0.1.26](v0.1.26.md) - 2025-12-26 - Fix GitHub Actions workflow to use vars.GCP_PROJECT_ID instead of secrets
+- [v0.1.25](v0.1.25.md) - 2025-12-26 - Add CI/CD pipeline for GCP Cloud Run deployment
+- [v0.1.24](v0.1.24.md) - 2025-12-26 - Add CI/CD pipeline for GCP Cloud Run deployment
+- [v0.1.23](v0.1.23.md) - 2025-12-26 - Bump aws-sdk-s3 dependency in archive
+- [v0.1.22](v0.1.22.md) - 2025-12-26 - Bump nokogiri dependency in archive
+- [v0.1.21](v0.1.21.md) - 2025-12-26 - Bump rack dependency in archive
+- [v0.1.20](v0.1.20.md) - 2025-12-26 - Bump activestorage dependency in archive
+- [v0.1.19](v0.1.19.md) - 2025-12-26 - Bump rexml dependency in archive
+- [v0.1.18](v0.1.18.md) - 2025-12-26 - Bump activerecord dependency in archive
+- [v0.1.17](v0.1.17.md) - 2025-12-26 - Restructure project: archive Rails codebase, add new Go implementation
+- [v0.1.16](v0.1.16.md) - 2025-12-26 - Restructure project: archive Rails codebase, add new Go implementation
+- [v0.1.15](v0.1.15.md) - 2025-12-26 - Bump aws-sdk-s3 dependency
+- [v0.1.14](v0.1.14.md) - 2025-12-26 - Bump faraday dependency
+- [v0.1.13](v0.1.13.md) - 2025-12-26 - Bump rack-mini-profiler dependency
+- [v0.1.12](v0.1.12.md) - 2025-12-26 - Bump aws-sdk-s3 dependency
+- [v0.1.11](v0.1.11.md) - 2025-12-26 - Bump rack dependency
+- [v0.1.10](v0.1.10.md) - 2025-12-26 - Bump nokogiri dependency
+- [v0.1.9](v0.1.9.md) - 2025-12-26 - Bump activerecord dependency
+- [v0.1.8](v0.1.8.md) - 2025-12-26 - Bump rexml dependency
+- [v0.1.7](v0.1.7.md) - 2025-12-26 - Bump faraday-retry dependency
+- [v0.1.6](v0.1.6.md) - 2025-12-26 - Bump hotwire-livereload dependency
+- [v0.1.5](v0.1.5.md) - 2025-12-26 - Bump activestorage dependency
+- [v0.1.4](v0.1.4.md) - 2025-12-26 - Bump actions/upload-artifact dependency
+- [v0.1.3](v0.1.3.md) - 2025-12-26 - Bump actions/checkout dependency
+- [v0.1.2](v0.1.2.md) - 2025-12-26 - Bump actions/setup-node dependency
+- [v0.1.1](v0.1.1.md) - 2025-12-25 - Initial commit establishing project foundation
+- [v0.1.0](v0.1.0.md) - 2025-12-25 - Initial release - project initialization

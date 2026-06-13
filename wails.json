@@ -1,0 +1,24 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "Probably",
+  "outputfilename": "Probably",
+  "assetdir": "./cmd/desktop/frontend",
+  "frontend:install": "",
+  "frontend:build": "",
+  "frontend:dev:watcher": "",
+  "frontend:dev:serverUrl": "",
+  "wailsjsdir": "./cmd/desktop/frontend",
+  "reloaddirs": "./internal,./cmd",
+  "author": {
+    "name": "Andrew",
+    "email": ""
+  },
+  "info": {
+    "companyName": "Probably",
+    "productName": "Probably",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright 2025",
+    "comments": "Personal finance tracking"
+  }
+}
+

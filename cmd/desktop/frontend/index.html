@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Probably</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #09090b;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: #a1a1aa;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .loading h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #fafafa;
+            margin-bottom: 1rem;
+            letter-spacing: -0.025em;
+        }
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid #27272a;
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">
+        <h1>probably</h1>
+        <div class="spinner"></div>
+        <p style="margin-top: 1rem;">Starting up...</p>
+    </div>
+    <iframe id="app" style="display: none;"></iframe>
+
+    <script src="/wails/ipc.js"></script>
+    <script src="/wails/runtime.js"></script>
+    <script>
+        // Poll for the server URL from the Go backend
+        async function waitForServer() {
+            const maxAttempts = 50;
+            let attempts = 0;
+            
+            while (attempts < maxAttempts) {
+                try {
+                    if (window.go && window.go.main && window.go.main.App) {
+                        const url = await window.go.main.App.GetServerURL();
+                        if (url) {
+                            connectToServer(url);
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    // Wails bindings not ready yet
+                }
+                attempts++;
+                await new Promise(r => setTimeout(r, 100));
+            }
+            
+            // Fallback: show error
+            document.querySelector('.loading p').textContent = 'Failed to connect to server';
+        }
+
+        function connectToServer(url) {
+            const iframe = document.getElementById('app');
+            const loading = document.getElementById('loading');
+            
+            iframe.src = url;
+            iframe.onload = function() {
+                loading.style.display = 'none';
+                iframe.style.display = 'block';
+            };
+            iframe.onerror = function() {
+                document.querySelector('.loading p').textContent = 'Failed to load application';
+            };
+        }
+
+        // Start once DOM is ready
+        document.addEventListener('DOMContentLoaded', waitForServer);
+    </script>
+</body>
+</html>
+

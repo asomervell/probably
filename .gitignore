@@ -1,0 +1,59 @@
+# Binaries
+/probably
+/server
+/util
+/bin/
+/main
+/backfill-logos
+/reprocess
+/reprocess-logos
+tailwindcss
+
+# Downloaded/generated assets
+static/logos/
+
+# Database
+*.db
+
+# Logs
+logs/
+*.log
+
+# Environment files
+.env
+.env.*
+!.env.1p
+
+# Teller certificates (NEVER COMMIT)
+.secure/
+*.pem
+
+# Service account keys
+github-actions-key.json
+*.json.key
+*-key.json
+
+# Air (hot reload)
+tmp/
+
+# Node
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+
+# Agent tooling / dev harness (not for public repo)
+.agents/
+.claude/
+.cursor/
+.hamster/
+AGENTS.local.md
+ecc-install.json
+
+# ngrok (personal reserved domain)
+ngrok.yml
+
+# macOS
+.DS_Store
+mcp-server

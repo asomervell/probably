@@ -1,0 +1,148 @@
+name: 'Calculate Semantic Version'
+description: 'Calculates semantic version based on conventional commits'
+
+inputs:
+  github_token:
+    description: 'GitHub token for pushing tags'
+    required: true
+  event_name:
+    description: 'GitHub event name (push, workflow_dispatch, etc.)'
+    required: true
+  ref:
+    description: 'GitHub ref (refs/heads/main, etc.)'
+    required: true
+
+outputs:
+  version:
+    description: 'The calculated version (e.g., v1.2.3 or v1.2.3-20241229-abc1234)'
+    value: ${{ steps.calculate.outputs.version }}
+  is_release:
+    description: 'Whether this is a release version (true/false)'
+    value: ${{ steps.calculate.outputs.is_release }}
+  bump_type:
+    description: 'The type of version bump (major, minor, patch, none)'
+    value: ${{ steps.calculate.outputs.bump_type }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Calculate semantic version
+      id: calculate
+      shell: bash
+      run: |
+        # Find the last semantic version tag (v*.*.* format, not v0.0.0-date-sha)
+        # Match exactly vMAJOR.MINOR.PATCH (e.g., v1.2.3, not v1.2.3.4)
+        LAST_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+        
+        if [ -z "$LAST_TAG" ]; then
+          # No semantic version tag found, start at v0.1.0
+          CURRENT_VERSION="0.1.0"
+          echo "No previous semantic version tag found, starting at v$CURRENT_VERSION"
+        else
+          # Extract version number (remove 'v' prefix)
+          CURRENT_VERSION=$(echo "$LAST_TAG" | sed 's/^v//')
+          echo "Last semantic version: $LAST_TAG ($CURRENT_VERSION)"
+        fi
+        
+        # Parse version components
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+        
+        # Get commits since last tag (or all commits if no tag)
+        if [ -n "$LAST_TAG" ]; then
+          COMMITS=$(git log ${LAST_TAG}..HEAD --oneline 2>/dev/null || echo "")
+        else
+          COMMITS=$(git log --oneline 2>/dev/null || echo "")
+        fi
+        
+        # Analyze commit messages for version bump type
+        BUMP_TYPE="none"
+        HAS_BREAKING=false
+        HAS_FEAT=false
+        HAS_FIX=false
+        
+        if [ -n "$COMMITS" ]; then
+          while IFS= read -r commit; do
+            [ -z "$commit" ] && continue
+            # Extract commit message (first line, skip commit hash)
+            MSG=$(echo "$commit" | cut -d' ' -f2-)
+            
+            # Check for breaking changes
+            if echo "$MSG" | grep -qE '^feat!|^fix!|BREAKING CHANGE:'; then
+              HAS_BREAKING=true
+              BUMP_TYPE="major"
+            # Check for features
+            elif echo "$MSG" | grep -qE '^feat:'; then
+              HAS_FEAT=true
+              if [ "$BUMP_TYPE" != "major" ]; then
+                BUMP_TYPE="minor"
+              fi
+            # Check for fixes
+            elif echo "$MSG" | grep -qE '^fix:'; then
+              HAS_FIX=true
+              if [ "$BUMP_TYPE" = "none" ]; then
+                BUMP_TYPE="patch"
+              fi
+            fi
+          done <<< "$COMMITS"
+        fi
+        
+        # Calculate new version
+        if [ "$BUMP_TYPE" = "major" ]; then
+          NEW_MAJOR=$((MAJOR + 1))
+          NEW_MINOR=0
+          NEW_PATCH=0
+        elif [ "$BUMP_TYPE" = "minor" ]; then
+          NEW_MAJOR=$MAJOR
+          NEW_MINOR=$((MINOR + 1))
+          NEW_PATCH=0
+        elif [ "$BUMP_TYPE" = "patch" ]; then
+          NEW_MAJOR=$MAJOR
+          NEW_MINOR=$MINOR
+          NEW_PATCH=$((PATCH + 1))
+        else
+          # No version-worthy changes, use current version with build metadata
+          NEW_MAJOR=$MAJOR
+          NEW_MINOR=$MINOR
+          NEW_PATCH=$PATCH
+        fi
+        
+        NEW_VERSION="v${NEW_MAJOR}.${NEW_MINOR}.${NEW_PATCH}"
+        
+        # Check if this is a push to main (not a tag push)
+        if [ "${{ inputs.event_name }}" = "push" ] && [ "${{ inputs.ref }}" = "refs/heads/main" ]; then
+          # Only create a new tag if there are version-worthy changes
+          if [ "$BUMP_TYPE" != "none" ]; then
+            echo "Creating new semantic version tag: $NEW_VERSION"
+            # Configure git identity for tag creation
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            # Check if tag already exists (shouldn't happen, but be safe)
+            if git rev-parse "$NEW_VERSION" >/dev/null 2>&1; then
+              echo "Tag $NEW_VERSION already exists, using existing tag"
+            else
+              git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION"
+              git push origin "$NEW_VERSION" || echo "Warning: Failed to push tag (may already exist)"
+            fi
+            IS_RELEASE=true
+          else
+            # No version-worthy changes, use build metadata
+            SHORT_SHA=$(git rev-parse --short HEAD)
+            NEW_VERSION="${NEW_VERSION}-$(date +%Y%m%d)-${SHORT_SHA}"
+            IS_RELEASE=false
+          fi
+        else
+          # This is a tag push or manual trigger
+          if git describe --tags --exact-match HEAD 2>/dev/null | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            NEW_VERSION=$(git describe --tags --exact-match HEAD)
+            IS_RELEASE=true
+          else
+            SHORT_SHA=$(git rev-parse --short HEAD)
+            NEW_VERSION="${NEW_VERSION}-$(date +%Y%m%d)-${SHORT_SHA}"
+            IS_RELEASE=false
+          fi
+        fi
+        
+        echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "is_release=$IS_RELEASE" >> $GITHUB_OUTPUT
+        echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+        echo "Version: $NEW_VERSION (bump: $BUMP_TYPE, release: $IS_RELEASE)"
