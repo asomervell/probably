@@ -2,20 +2,22 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  # Build command - Go only, no Tailwind (worker doesn't serve frontend)
-  cmd = "go build -o ./tmp/worker ./cmd/server"
-  # Entrypoint (binary to run)
-  entrypoint = ["./tmp/worker"]
-  # Watch these directories - focus on backend code only
-  include_ext = ["go", "sql"]
+  # We compile the binary ourselves (`make build-worker`). Air does NOT build.
+  # `cmd` is a deliberate no-op — air's only job is to watch the compiled
+  # binary below and restart the worker when it changes.
+  cmd = "true"
+  # Binary to run (built by `make build-worker`).
+  entrypoint = ["./bin/probably-worker"]
+  # Watch ONLY the compiled binary — not source files.
+  include_ext = []
+  include_file = ["bin/probably-worker"]
   exclude_dir = ["assets", "tmp", "vendor", "node_modules", "frontend", "build", "static", ".git"]
-  exclude_regex = ["_test.go"]
+  # Skip restart if the binary is byte-identical to the last build.
   exclude_unchanged = true
   follow_symlink = false
-  # Delay before rebuild (ms)
-  delay = 1000
-  # Stop old binary before building
-  stop_on_error = true
+  # Short debounce so we restart once after the binary write settles.
+  delay = 200
+  stop_on_error = false
   # Log file (empty = stdout)
   log = ""
   # Send interrupt signal before killing
@@ -26,7 +28,7 @@ tmp_dir = "tmp"
 [log]
   # Show log time
   time = false
-  # Only show main log (silences watcher, build, runner)
+  # Only show main log
   main_only = true
 
 [color]
