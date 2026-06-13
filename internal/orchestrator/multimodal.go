@@ -283,17 +283,7 @@ func (o *Orchestrator) callGeminiVision(ctx context.Context, model *ModelSpec, r
 	}, nil
 }
 
-// mapVertexModelName maps model names to Vertex AI format if needed
 func (o *Orchestrator) mapVertexModelName(model string) string {
-	// Vertex AI model names are generally the same, but we can add mappings here if needed
-	modelMap := map[string]string{
-		// Add any model name mappings here if needed
-	}
-
-	if mapped, ok := modelMap[model]; ok {
-		return mapped
-	}
-
 	return model
 }
 
