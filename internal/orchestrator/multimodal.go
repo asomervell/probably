@@ -1,9 +1,15 @@
 package orchestrator
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
+	"strings"
 
 	"google.golang.org/genai"
 )
@@ -30,16 +36,134 @@ func (o *Orchestrator) CallVision(ctx context.Context, req *VisionRequest) (*Vis
 		return nil, fmt.Errorf("no vision model configured")
 	}
 
-	// Calling vision model
+	// Route to the provider-specific vision implementation.
+	switch model.Provider {
+	case ProviderAnthropic:
+		return o.callAnthropicVision(ctx, model, req)
+	case ProviderGoogle:
+		if o.useVertex {
+			return o.callVertexVision(ctx, model, req)
+		}
+		return o.callGeminiVision(ctx, model, req)
+	default:
+		return nil, fmt.Errorf("provider %q does not support vision (supported: anthropic, google)", model.Provider)
+	}
+}
 
-	if model.Provider != ProviderGoogle {
-		return nil, fmt.Errorf("vision requires Google provider (Vertex AI or Gemini API); provider %q does not support vision", model.Provider)
+// callAnthropicVision uses the Anthropic Messages API for vision/document
+// processing. It supports both images (image/*) and PDFs (application/pdf):
+// PDFs are sent as "document" content blocks, images as "image" blocks.
+func (o *Orchestrator) callAnthropicVision(ctx context.Context, model *ModelSpec, req *VisionRequest) (*VisionResponse, error) {
+	apiKey := o.getAPIKey(ProviderAnthropic)
+	if apiKey == "" {
+		return nil, fmt.Errorf("ANTHROPIC_API_KEY is required for Anthropic vision")
 	}
 
-	if o.useVertex {
-		return o.callVertexVision(ctx, model, req)
+	// Build the document/image source block based on MIME type.
+	encoded := base64.StdEncoding.EncodeToString(req.Document)
+	var sourceBlock map[string]any
+	switch {
+	case req.MimeType == "application/pdf":
+		sourceBlock = map[string]any{
+			"type": "document",
+			"source": map[string]any{
+				"type":       "base64",
+				"media_type": "application/pdf",
+				"data":       encoded,
+			},
+		}
+	case strings.HasPrefix(req.MimeType, "image/"):
+		sourceBlock = map[string]any{
+			"type": "image",
+			"source": map[string]any{
+				"type":       "base64",
+				"media_type": req.MimeType,
+				"data":       encoded,
+			},
+		}
+	default:
+		return nil, fmt.Errorf("unsupported vision MIME type for Anthropic: %q (supported: application/pdf, image/*)", req.MimeType)
 	}
-	return o.callGeminiVision(ctx, model, req)
+
+	reqBody := map[string]any{
+		"model":      model.Model,
+		"max_tokens": 16384,
+		"system":     buildStatementExtractionSystemPrompt(),
+		"messages": []map[string]any{
+			{
+				"role": "user",
+				"content": []map[string]any{
+					sourceBlock,
+					{"type": "text", "text": req.Prompt},
+				},
+			},
+		},
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, err
+	}
+
+	url := o.endpoints[ProviderAnthropic] + "/messages"
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonBody))
+	if err != nil {
+		return nil, err
+	}
+	httpReq.Header.Set("x-api-key", apiKey)
+	httpReq.Header.Set("anthropic-version", "2023-06-01")
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := o.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("Anthropic vision API error: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Anthropic vision API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	var apiResp struct {
+		Content []struct {
+			Type string `json:"type"`
+			Text string `json:"text"`
+		} `json:"content"`
+		StopReason string `json:"stop_reason"`
+		Usage      struct {
+			InputTokens  int `json:"input_tokens"`
+			OutputTokens int `json:"output_tokens"`
+		} `json:"usage"`
+	}
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return nil, fmt.Errorf("failed to parse Anthropic vision response: %w", err)
+	}
+
+	if apiResp.StopReason == "max_tokens" {
+		slog.WarnContext(ctx, "anthropic vision response truncated due to max tokens")
+		return nil, fmt.Errorf("response was truncated due to token limit")
+	}
+
+	var sb strings.Builder
+	for _, block := range apiResp.Content {
+		if block.Type == "text" {
+			sb.WriteString(block.Text)
+		}
+	}
+	responseText := sb.String()
+	if responseText == "" {
+		return nil, fmt.Errorf("empty response from Anthropic vision API")
+	}
+
+	return &VisionResponse{
+		Content:    responseText,
+		TokensUsed: apiResp.Usage.InputTokens + apiResp.Usage.OutputTokens,
+		Model:      model.Model,
+	}, nil
 }
 
 // callVertexVision uses Vertex AI GenAI SDK for vision processing
