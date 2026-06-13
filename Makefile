@@ -1,7 +1,10 @@
 # Probably - Makefile
 # Build targets for both web server and desktop app
 
-.PHONY: all dev build clean server desktop desktop-dev desktop-build deps db-up env help _dev-inner
+.PHONY: all dev build clean server desktop desktop-dev desktop-build deps db-up env help _dev-inner build-app build-worker build-dev
+
+# Resolve the `air` binary even when GOPATH/bin isn't on PATH.
+AIR := $(shell which air 2>/dev/null || echo $(shell go env GOPATH)/bin/air)
 
 # Default target
 all: help
@@ -51,6 +54,23 @@ db-migrate:
 # Web Server (existing workflow)
 # ============================================================================
 
+# Dev binaries that `air` watches. We compile these; air does NOT build — it
+# only watches the resulting binary and restarts the process when it changes.
+# Rebuild after a change (e.g. `make build-app`) and the running server bounces.
+build-app:
+	@echo "🔨 Building app binary (./bin/probably-app)..."
+	@mkdir -p bin
+	@[ -f ./bin/tailwindcss ] && ./bin/tailwindcss -i ./static/input.css -o ./static/output.css || true
+	go build -o ./bin/probably-app ./cmd/server
+
+build-worker:
+	@echo "🔨 Building worker binary (./bin/probably-worker)..."
+	@mkdir -p bin
+	go build -o ./bin/probably-worker ./cmd/server
+
+# Rebuild both dev binaries; any running `air` processes restart automatically.
+build-dev: build-app build-worker
+
 dev:
 	@if which humanlog > /dev/null 2>&1; then \
 		$(MAKE) _dev-inner 2>&1 | humanlog; \
@@ -73,7 +93,7 @@ _dev-inner:
 		echo $$OLD_PIDS | xargs kill -9 2>/dev/null || true; \
 	fi; \
 	pkill -9 -f "^air " 2>/dev/null || true; \
-	pkill -9 -f "probably-server" 2>/dev/null || true; \
+	pkill -9 -f "probably-(server|app|worker)" 2>/dev/null || true; \
 	pkill -9 -f "go run.*cmd/server" 2>/dev/null || true; \
 	pkill -9 -f "ngrok" 2>/dev/null || true; \
 	sleep 2; \
@@ -83,7 +103,8 @@ _dev-inner:
 	@docker compose up db -d 2>/dev/null || echo "⚠️  Could not start Docker PostgreSQL (may already be running or permission issue)"
 	@echo "🚀 Starting application server (port 8080) - starting immediately..."
 	@trap "pkill -9 -f 'air.*-c.*\.air\.' 2>/dev/null || true; pkill -9 -f 'ngrok' 2>/dev/null || true; pkill -9 -f 'stripe listen' 2>/dev/null || true" EXIT INT TERM; \
-	RUNTIME_MODE=app air -c .air.app.toml & \
+	$(MAKE) build-app; \
+	RUNTIME_MODE=app $(AIR) -c .air.app.toml & \
 	APP_PID=$$!; \
 	echo "✅ App server starting (PID: $$APP_PID)"; \
 	if which ngrok > /dev/null 2>&1; then \
@@ -133,7 +154,8 @@ _dev-inner:
 		echo "   Waiting for app... ($$WAIT_COUNT/$$MAX_WAIT)"; \
 	done; \
 	echo "🔄 Starting worker (port 8081) for background processing..."; \
-	RUNTIME_MODE=worker air -c .air.worker.toml & \
+	$(MAKE) build-worker; \
+	RUNTIME_MODE=worker $(AIR) -c .air.worker.toml & \
 	WORKER_PID=$$!; \
 	echo "✅ Worker starting (PID: $$WORKER_PID)"; \
 	echo ""; \
@@ -144,17 +166,17 @@ _dev-inner:
 	pkill -9 -f 'ngrok' 2>/dev/null || true; \
 	pkill -9 -f 'stripe listen' 2>/dev/null || true
 
-dev-app:
+dev-app: build-app
 	@echo "🛑 Stopping any existing services on port 8080..."
 	@lsof -ti:8080 | xargs kill -9 2>/dev/null || true
-	@echo "🚀 Starting application server only (with Tailwind)..."
-	@RUNTIME_MODE=app air -c .air.app.toml
+	@echo "🚀 Starting application server only (air watches the binary)..."
+	@RUNTIME_MODE=app $(AIR) -c .air.app.toml
 
-dev-worker:
+dev-worker: build-worker
 	@echo "🛑 Stopping any existing services on port 8081..."
 	@lsof -ti:8081 | xargs kill -9 2>/dev/null || true
-	@echo "🔄 Starting worker only (schedules, sync, processing)..."
-	@RUNTIME_MODE=worker air -c .air.worker.toml
+	@echo "🔄 Starting worker only (air watches the binary)..."
+	@RUNTIME_MODE=worker $(AIR) -c .air.worker.toml
 
 dev-no-reload:
 	@echo "🚀 Starting web server in development mode..."
