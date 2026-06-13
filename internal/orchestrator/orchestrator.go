@@ -127,16 +127,22 @@ func NewOrchestrator(cfg *config.Config) (*Orchestrator, error) {
 		orch.models[RoleToolCall] = fallbackSpec
 	}
 
-	// Vision (statement/document OCR) is only supported via Google — Vertex AI
-	// or the Gemini API. When the default model is Google, reuse it; otherwise
-	// fall back to the Gemini API when a Google key is configured. With no
-	// Google access (e.g. an Anthropic-only setup) vision stays unregistered,
-	// and statement OCR degrades gracefully (see SupportsVision / statement.go).
+	// Vision (statement/document OCR) is supported via Anthropic (Messages API)
+	// and Google (Vertex AI / Gemini API). Reuse the default model when it is
+	// vision-capable; otherwise fall back to whichever vision provider is keyed,
+	// preferring Anthropic. With no vision-capable provider, vision stays
+	// unregistered and statement OCR degrades gracefully (see SupportsVision).
 	switch {
-	case defaultSpec.Provider == ProviderGoogle:
+	case defaultSpec.Provider == ProviderAnthropic || defaultSpec.Provider == ProviderGoogle:
 		orch.models[RoleVision] = &ModelSpec{
-			Provider: ProviderGoogle,
+			Provider: defaultSpec.Provider,
 			Model:    defaultSpec.Model,
+			Role:     RoleVision,
+		}
+	case cfg.AnthropicAPIKey != "":
+		orch.models[RoleVision] = &ModelSpec{
+			Provider: ProviderAnthropic,
+			Model:    cfg.ClaudeModel,
 			Role:     RoleVision,
 		}
 	case cfg.GoogleAPIKey != "":
@@ -291,12 +297,12 @@ func (o *Orchestrator) IsConfigured() bool {
 	return o.getAPIKey(defaultModel.Provider) != ""
 }
 
-// SupportsVision returns true when a Google vision model is available.
-// Only Google providers (Gemini API / Vertex AI) support PDF and image vision;
-// OpenAI-compatible providers are not implemented for vision.
+// SupportsVision returns true when a vision-capable model is available.
+// Anthropic (Messages API) and Google (Gemini API / Vertex AI) support PDF and
+// image vision; other OpenAI-compatible providers are not implemented.
 func (o *Orchestrator) SupportsVision() bool {
 	model := o.models[RoleVision]
-	return model != nil && model.Provider == ProviderGoogle
+	return model != nil && (model.Provider == ProviderAnthropic || model.Provider == ProviderGoogle)
 }
 
 // getAPIKey returns the API key for a provider
