@@ -131,8 +131,6 @@ type Config struct {
 	// Voice Chat Configuration
 	VoiceEnabled bool // Enable voice chat features
 
-	// Demo mode
-	DemoMode bool // When true, defaults to Anthropic Claude for chat/insights (DEMO_MODE)
 }
 
 // RequireDatabaseURL returns an error if DATABASE_URL was not set. The app
@@ -258,9 +256,6 @@ func Load() *Config {
 
 		// Voice Chat
 		VoiceEnabled: getEnvBool("VOICE_ENABLED", false),
-
-		// Demo mode
-		DemoMode: getEnvBool("DEMO_MODE", false),
 	}
 
 	// Anthropic Claude is the default provider for all text LLM tasks. An

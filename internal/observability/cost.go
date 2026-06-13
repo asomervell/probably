@@ -1,5 +1,7 @@
 package observability
 
+import "strings"
+
 // ModelPricing defines the cost per 1M tokens for input and output
 // Prices are in USD per million tokens
 // Source: Provider pricing pages (as of 2025)
@@ -71,14 +73,14 @@ func GetModelPricing(model string) ModelPricing {
 	// Default: assume Google pricing (most common)
 	default:
 		// If it's a Google model we don't recognize, use flash pricing as default
-		if len(model) > 7 && model[:7] == "google/" {
+		if strings.HasPrefix(model, "google/") {
 			return ModelPricing{
 				InputCostPerMillion:  0.075,
 				OutputCostPerMillion: 0.30,
 			}
 		}
 		// Unrecognized Anthropic model — fall back to Sonnet pricing.
-		if len(model) > 10 && model[:10] == "anthropic/" {
+		if strings.HasPrefix(model, "anthropic/") {
 			return ModelPricing{
 				InputCostPerMillion:  3.00,
 				OutputCostPerMillion: 15.00,

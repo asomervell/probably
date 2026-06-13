@@ -11,9 +11,6 @@ func TestLoadAnthropicFields(t *testing.T) {
 		if cfg.ClaudeModel != "claude-sonnet-4-6" {
 			t.Errorf("ClaudeModel = %q, want claude-sonnet-4-6", cfg.ClaudeModel)
 		}
-		if cfg.DemoMode {
-			t.Errorf("DemoMode = true, want false")
-		}
 	})
 
 	t.Run("ANTHROPIC_API_KEY is trimmed", func(t *testing.T) {
@@ -32,19 +29,11 @@ func TestLoadAnthropicFields(t *testing.T) {
 		}
 	})
 
-	t.Run("DEMO_MODE bool parsing", func(t *testing.T) {
-		for _, v := range []string{"true", "1", "yes"} {
-			t.Setenv("DEMO_MODE", v)
-			cfg := Load()
-			if !cfg.DemoMode {
-				t.Errorf("DEMO_MODE=%q: DemoMode = false, want true", v)
-			}
-		}
-	})
 }
 
 func TestLoadDefaultModel(t *testing.T) {
 	t.Run("defaults to Anthropic Claude when unset", func(t *testing.T) {
+		t.Setenv("LLM_DEFAULT_MODEL", "")
 		t.Setenv("ANTHROPIC_API_KEY", "test-key")
 		cfg := Load()
 		if cfg.LLMDefaultModel != "anthropic/claude-sonnet-4-6" {
@@ -53,6 +42,7 @@ func TestLoadDefaultModel(t *testing.T) {
 	})
 
 	t.Run("default uses CLAUDE_MODEL override", func(t *testing.T) {
+		t.Setenv("LLM_DEFAULT_MODEL", "")
 		t.Setenv("ANTHROPIC_API_KEY", "test-key")
 		t.Setenv("CLAUDE_MODEL", "claude-opus-4-8")
 		cfg := Load()
