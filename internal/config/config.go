@@ -60,7 +60,7 @@ type Config struct {
 	// LLM Model Configuration
 	// Format: "provider/model" (e.g., "xai/grok-4-1", "google/gemini-2.0-flash", "groq/llama-3.3-70b")
 	// Supported providers: xai, google, groq, anthropic
-	LLMDefaultModel   string // Default model for most tasks (e.g., "google/gemini-2.0-flash"). When DEMO_MODE is on and this is unset, defaults to "anthropic/<ClaudeModel>".
+	LLMDefaultModel   string // Default model for most tasks. Defaults to "anthropic/<ClaudeModel>" when unset; an explicit LLM_DEFAULT_MODEL (any provider) always wins.
 	LLMReasoningModel string // Complex reasoning tasks (e.g., "xai/grok-4-1")
 	LLMToolCallModel  string // Tool/function calling (e.g., "google/gemini-2.0-flash")
 
@@ -84,7 +84,7 @@ type Config struct {
 	VertexLocation string // GCP location (default: us-central1)
 	VertexModel    string // Model for Google insights (default: gemini-1.5-pro)
 	GroqModel      string // Model for Groq insights (default: llama-3.3-70b-versatile)
-	ClaudeModel    string // Model for Anthropic insights (default: claude-3-5-sonnet-20241022)
+	ClaudeModel    string // Model for Anthropic insights (default: claude-sonnet-4-6)
 
 	// Parallelization settings for processing worker
 	ProcessingWorkers int // Concurrent transaction processing workers (default: 20)
@@ -212,7 +212,7 @@ func Load() *Config {
 		VertexLocation: strings.TrimSpace(getEnv("VERTEX_LOCATION", "us-central1")),
 		VertexModel:    strings.TrimSpace(getEnv("VERTEX_MODEL", "gemini-1.5-pro")),
 		GroqModel:      getEnv("GROQ_MODEL", "llama-3.3-70b-versatile"),
-		ClaudeModel:    getEnv("CLAUDE_MODEL", "claude-3-5-sonnet-20241022"),
+		ClaudeModel:    getEnv("CLAUDE_MODEL", "claude-sonnet-4-6"),
 
 		// Parallelization
 		ProcessingWorkers: getEnvInt("PROCESSING_WORKERS", 20),
@@ -263,16 +263,14 @@ func Load() *Config {
 		DemoMode: getEnvBool("DEMO_MODE", false),
 	}
 
-	// Demo mode defaults chat/insights to Anthropic Claude, but only when the
-	// operator has not explicitly chosen a model — an explicit LLM_DEFAULT_MODEL
-	// always wins so demo mode never silently overrides another provider.
-	if cfg.DemoMode {
-		if cfg.LLMDefaultModel == "" {
-			cfg.LLMDefaultModel = "anthropic/" + cfg.ClaudeModel
-		}
-		if cfg.AnthropicAPIKey == "" {
-			slog.Warn("DEMO_MODE is enabled but ANTHROPIC_API_KEY is not set; chat/insights will not route to Claude")
-		}
+	// Anthropic Claude is the default provider for all text LLM tasks. An
+	// explicit LLM_DEFAULT_MODEL (any provider) always wins, so operators can
+	// opt out per-environment without code changes.
+	if cfg.LLMDefaultModel == "" {
+		cfg.LLMDefaultModel = "anthropic/" + cfg.ClaudeModel
+	}
+	if provider, _, _ := strings.Cut(cfg.LLMDefaultModel, "/"); provider == "anthropic" && cfg.AnthropicAPIKey == "" {
+		slog.Warn("LLM default routes to Anthropic but ANTHROPIC_API_KEY is not set; LLM features will be unavailable until it is configured")
 	}
 
 	return cfg

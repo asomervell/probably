@@ -127,14 +127,25 @@ func NewOrchestrator(cfg *config.Config) (*Orchestrator, error) {
 		orch.models[RoleToolCall] = fallbackSpec
 	}
 
-	// Vision model defaults to default model if not specified
-	// Create a copy with correct role for fallback (allocate on heap)
-	visionSpec := &ModelSpec{
-		Provider: defaultSpec.Provider,
-		Model:    defaultSpec.Model,
-		Role:     RoleVision,
+	// Vision (statement/document OCR) is only supported via Google — Vertex AI
+	// or the Gemini API. When the default model is Google, reuse it; otherwise
+	// fall back to the Gemini API when a Google key is configured. With no
+	// Google access (e.g. an Anthropic-only setup) vision stays unregistered,
+	// and statement OCR degrades gracefully (see SupportsVision / statement.go).
+	switch {
+	case defaultSpec.Provider == ProviderGoogle:
+		orch.models[RoleVision] = &ModelSpec{
+			Provider: ProviderGoogle,
+			Model:    defaultSpec.Model,
+			Role:     RoleVision,
+		}
+	case cfg.GoogleAPIKey != "":
+		orch.models[RoleVision] = &ModelSpec{
+			Provider: ProviderGoogle,
+			Model:    "gemini-2.5-flash",
+			Role:     RoleVision,
+		}
 	}
-	orch.models[RoleVision] = visionSpec
 
 	// Initialize strategies
 	orch.strategies[StrategySimple] = &SimpleStrategy{}

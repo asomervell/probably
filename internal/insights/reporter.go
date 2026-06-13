@@ -28,15 +28,10 @@ func buildDefaultProviderChain(cfg *config.Config) *providers.ProviderChain {
 	vertex := providers.NewVertexProvider(cfg.GoogleAPIKey, cfg.VertexModel)
 	groq := providers.NewGroqProvider(cfg.GroqAPIKey, cfg.GroqModel)
 
-	// In demo mode Claude is the primary path; otherwise it is a fallback
-	// after the existing providers. NewProviderChain filters out any provider
-	// whose key is unconfigured, so an empty Anthropic key is safe.
-	var chain []providers.InsightProvider
-	if cfg.DemoMode {
-		chain = []providers.InsightProvider{claude, grok, vertex, groq}
-	} else {
-		chain = []providers.InsightProvider{grok, vertex, groq, claude}
-	}
+	// Claude is the primary path; the others are fallbacks in priority order.
+	// NewProviderChain filters out any provider whose key is unconfigured, so
+	// callers that only set ANTHROPIC_API_KEY get a Claude-only chain.
+	chain := []providers.InsightProvider{claude, grok, vertex, groq}
 
 	return providers.NewProviderChain(chain)
 }

@@ -52,6 +52,22 @@ func GetModelPricing(model string) ModelPricing {
 			InputCostPerMillion:  0.00,   // Free tier
 			OutputCostPerMillion: 0.00,
 		}
+	// Anthropic models (Claude). Prices per 1M tokens, Anthropic public pricing.
+	case "anthropic/claude-opus-4-8", "anthropic/claude-opus-4-1":
+		return ModelPricing{
+			InputCostPerMillion:  15.00,  // $15 per 1M input tokens
+			OutputCostPerMillion: 75.00,  // $75 per 1M output tokens
+		}
+	case "anthropic/claude-sonnet-4-6", "anthropic/claude-sonnet-4-0":
+		return ModelPricing{
+			InputCostPerMillion:  3.00,   // $3 per 1M input tokens
+			OutputCostPerMillion: 15.00,  // $15 per 1M output tokens
+		}
+	case "anthropic/claude-haiku-4-5-20251001", "anthropic/claude-3-5-haiku-latest":
+		return ModelPricing{
+			InputCostPerMillion:  1.00,   // $1 per 1M input tokens
+			OutputCostPerMillion: 5.00,   // $5 per 1M output tokens
+		}
 	// Default: assume Google pricing (most common)
 	default:
 		// If it's a Google model we don't recognize, use flash pricing as default
@@ -59,6 +75,13 @@ func GetModelPricing(model string) ModelPricing {
 			return ModelPricing{
 				InputCostPerMillion:  0.075,
 				OutputCostPerMillion: 0.30,
+			}
+		}
+		// Unrecognized Anthropic model — fall back to Sonnet pricing.
+		if len(model) > 10 && model[:10] == "anthropic/" {
+			return ModelPricing{
+				InputCostPerMillion:  3.00,
+				OutputCostPerMillion: 15.00,
 			}
 		}
 		// Unknown model - return zero cost (will show as $0.00)
