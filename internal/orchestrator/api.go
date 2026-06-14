@@ -311,8 +311,6 @@ func (o *Orchestrator) callVertexAIStreaming(ctx context.Context, model *ModelSp
 		return nil, err
 	}
 
-	vertexModel := o.mapVertexModelName(model.Model)
-
 	contents, systemInstructionText := convertMessagesToVertexContents(messages)
 	if len(contents) == 0 {
 		return nil, fmt.Errorf("no content messages to send to Vertex AI")
@@ -331,7 +329,7 @@ func (o *Orchestrator) callVertexAIStreaming(ctx context.Context, model *ModelSp
 	}
 
 	// Use streaming API
-	stream := o.vertexClient.Models.GenerateContentStream(ctx, vertexModel, contents, config)
+	stream := o.vertexClient.Models.GenerateContentStream(ctx, model.Model, contents, config)
 
 	var textContent strings.Builder
 	var thoughts []string
@@ -386,8 +384,6 @@ func (o *Orchestrator) callVertexAI(ctx context.Context, model *ModelSpec, messa
 		return nil, fmt.Errorf("Vertex AI client not initialized")
 	}
 
-	vertexModel := o.mapVertexModelName(model.Model)
-
 	contents, systemInstructionText := convertMessagesToVertexContents(messages)
 	if len(contents) == 0 {
 		return nil, fmt.Errorf("no content messages to send to Vertex AI")
@@ -412,7 +408,7 @@ func (o *Orchestrator) callVertexAI(ctx context.Context, model *ModelSpec, messa
 
 	sanitizeFunctionResponseNames(contents)
 
-	apiResult, err := o.vertexClient.Models.GenerateContent(ctx, vertexModel, contents, config)
+	apiResult, err := o.vertexClient.Models.GenerateContent(ctx, model.Model, contents, config)
 	if err != nil {
 		return nil, fmt.Errorf("Vertex AI API error: %w", err)
 	}
@@ -758,8 +754,6 @@ func (o *Orchestrator) callVertexAIChatToolsStreaming(ctx context.Context, model
 		return nil, fmt.Errorf("Vertex AI client not initialized")
 	}
 
-	vertexModel := o.mapVertexModelName(model.Model)
-
 	contents, systemInstructionText := convertMessagesToVertexContents(messages)
 	if len(contents) == 0 {
 		return nil, fmt.Errorf("no content messages")
@@ -782,7 +776,7 @@ func (o *Orchestrator) callVertexAIChatToolsStreaming(ctx context.Context, model
 
 	sanitizeFunctionResponseNames(contents)
 
-	stream := o.vertexClient.Models.GenerateContentStream(ctx, vertexModel, contents, config)
+	stream := o.vertexClient.Models.GenerateContentStream(ctx, model.Model, contents, config)
 
 	var textContent strings.Builder
 	var functionCalls []ToolCall
