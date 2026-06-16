@@ -1045,13 +1045,6 @@ func (s *EntityRelationshipStore) Create(ctx context.Context, r *EntityRelations
 	return err
 }
 
-func nullTimePtr(t sql.NullTime) *time.Time {
-	if t.Valid {
-		return &t.Time
-	}
-	return nil
-}
-
 func scanEntitySimilarityRow(rows pgx.Rows) (*EntitySimilarityResult, error) {
 	var e Entity
 	var subtype, slug, logoURL, website, description, externalID, externalSource sql.NullString

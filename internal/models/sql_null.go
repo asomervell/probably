@@ -1,6 +1,9 @@
 package models
 
-import "database/sql"
+import (
+	"database/sql"
+	"time"
+)
 
 // NullString converts an empty string to a null SQL string.
 func NullString(s string) sql.NullString {
@@ -24,4 +27,36 @@ func NullBool(b *bool) sql.NullBool {
 		return sql.NullBool{}
 	}
 	return sql.NullBool{Bool: *b, Valid: true}
+}
+
+// nullTimePtr converts a sql.NullTime to *time.Time.
+func nullTimePtr(t sql.NullTime) *time.Time {
+	if t.Valid {
+		return &t.Time
+	}
+	return nil
+}
+
+// nullStringPtr converts a sql.NullString to *string.
+func nullStringPtr(s sql.NullString) *string {
+	if !s.Valid {
+		return nil
+	}
+	return &s.String
+}
+
+// toNullString converts a *string to sql.NullString.
+func toNullString(s *string) sql.NullString {
+	if s == nil {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: *s, Valid: true}
+}
+
+// toNullTime converts a *time.Time to sql.NullTime.
+func toNullTime(t *time.Time) sql.NullTime {
+	if t == nil {
+		return sql.NullTime{}
+	}
+	return sql.NullTime{Time: *t, Valid: true}
 }
