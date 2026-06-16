@@ -57,30 +57,6 @@ type EntitySubscription struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
-// nullStringPtr converts a sql.NullString to *string.
-func nullStringPtr(s sql.NullString) *string {
-	if !s.Valid {
-		return nil
-	}
-	return &s.String
-}
-
-// toNullString converts a *string to sql.NullString.
-func toNullString(s *string) sql.NullString {
-	if s == nil {
-		return sql.NullString{}
-	}
-	return sql.NullString{String: *s, Valid: true}
-}
-
-// toNullTime converts a *time.Time to sql.NullTime.
-func toNullTime(t *time.Time) sql.NullTime {
-	if t == nil {
-		return sql.NullTime{}
-	}
-	return sql.NullTime{Time: *t, Valid: true}
-}
-
 // scanSubscription scans a row into sub, handling nullable stripe and period fields.
 func scanSubscription(row rowScanner, sub *Subscription) error {
 	var stripeSubID, stripeCustID sql.NullString
