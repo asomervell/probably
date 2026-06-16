@@ -265,7 +265,7 @@ func (w *SyncWorker) syncAll() {
 	logFn(ctx, "provider sync complete", "trigger", "scheduled", "status", status, "connections", totalConnections, "transactions", totalSynced, "errors", syncErrors, "transient_errors", transientErrors, "disconnected", disconnected, "duration", duration.Round(time.Millisecond), "error_details", syncErrorDetails)
 	captureProps := map[string]any{
 		"trigger":          "scheduled",
-		"status":           status,
+		"sync_status":      status,
 		"connections":      totalConnections,
 		"transactions":     totalSynced,
 		"errors":           syncErrors,
