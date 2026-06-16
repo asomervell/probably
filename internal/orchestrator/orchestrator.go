@@ -30,6 +30,7 @@ type Orchestrator struct {
 	vertexProject  string
 	vertexLocation string
 	vertexClient   *genai.Client // GenAI SDK client for Vertex AI
+	geminiClient   *genai.Client // GenAI SDK client for Google AI Studio (non-Vertex)
 
 	// Strategy implementations
 	strategies map[Strategy]StrategyExecutor
@@ -88,7 +89,18 @@ func NewOrchestrator(cfg *config.Config) (*Orchestrator, error) {
 			return nil, fmt.Errorf("failed to create Vertex AI client: %w", err)
 		}
 
-		// Vertex AI configured successfully
+	}
+
+	// Initialize Google AI Studio client when using Gemini API directly (not Vertex)
+	if !orch.useVertex && cfg.GoogleAPIKey != "" {
+		ctx := context.Background()
+		orch.geminiClient, err = genai.NewClient(ctx, &genai.ClientConfig{
+			APIKey:  cfg.GoogleAPIKey,
+			Backend: genai.BackendGeminiAPI,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Gemini API client: %w", err)
+		}
 	}
 
 	// Parse reasoning model (optional)

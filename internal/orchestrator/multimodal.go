@@ -172,9 +172,6 @@ func (o *Orchestrator) callVertexVision(ctx context.Context, model *ModelSpec, r
 		return nil, fmt.Errorf("Vertex AI client not initialized")
 	}
 
-	// Map model name for Vertex AI
-	vertexModel := o.mapVertexModelName(model.Model)
-
 	// Build content with text and document
 	parts := []*genai.Part{
 		genai.NewPartFromText(req.Prompt),
@@ -197,7 +194,7 @@ func (o *Orchestrator) callVertexVision(ctx context.Context, model *ModelSpec, r
 	}
 
 	// Call the API
-	apiResult, err := o.vertexClient.Models.GenerateContent(ctx, vertexModel, contents, config)
+	apiResult, err := o.vertexClient.Models.GenerateContent(ctx, model.Model, contents, config)
 	if err != nil {
 		return nil, fmt.Errorf("Vertex AI vision API error: %w", err)
 	}
@@ -219,27 +216,17 @@ func (o *Orchestrator) callVertexVision(ctx context.Context, model *ModelSpec, r
 		return nil, fmt.Errorf("empty response from Vertex AI")
 	}
 
-	// Vision response received
-
 	return &VisionResponse{
 		Content:    responseText,
 		TokensUsed: int(apiResult.UsageMetadata.TotalTokenCount),
-		Model:      vertexModel,
+		Model:      model.Model,
 	}, nil
 }
 
 // callGeminiVision uses Google AI Studio (Gemini API) for vision processing.
 func (o *Orchestrator) callGeminiVision(ctx context.Context, model *ModelSpec, req *VisionRequest) (*VisionResponse, error) {
-	if o.cfg == nil || o.cfg.GoogleAPIKey == "" {
+	if o.geminiClient == nil {
 		return nil, fmt.Errorf("GOOGLE_API_KEY is required for Google vision model when Vertex AI is not configured")
-	}
-
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey:  o.cfg.GoogleAPIKey,
-		Backend: genai.BackendGeminiAPI,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Gemini API client: %w", err)
 	}
 
 	parts := []*genai.Part{
@@ -257,7 +244,7 @@ func (o *Orchestrator) callGeminiVision(ctx context.Context, model *ModelSpec, r
 		ResponseMIMEType:  "application/json",
 	}
 
-	apiResult, err := client.Models.GenerateContent(ctx, model.Model, contents, config)
+	apiResult, err := o.geminiClient.Models.GenerateContent(ctx, model.Model, contents, config)
 	if err != nil {
 		return nil, fmt.Errorf("Gemini vision API error: %w", err)
 	}
@@ -281,10 +268,6 @@ func (o *Orchestrator) callGeminiVision(ctx context.Context, model *ModelSpec, r
 		TokensUsed: int(apiResult.UsageMetadata.TotalTokenCount),
 		Model:      model.Model,
 	}, nil
-}
-
-func (o *Orchestrator) mapVertexModelName(model string) string {
-	return model
 }
 
 // buildStatementExtractionSystemPrompt returns the system prompt for statement extraction
