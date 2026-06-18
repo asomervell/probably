@@ -1325,8 +1325,8 @@ func (hdl *Handlers) TellerWebhook(w http.ResponseWriter, r *http.Request) {
 	slog.InfoContext(r.Context(), "received webhook event", "type", webhook.Type, "id", webhook.ID)
 
 	// Acknowledge receipt immediately — Teller expects a fast 200 and will retry on timeout.
-	// enrollment.disconnected is a quick DB write and stays synchronous.
-	// transactions.processed triggers a full Teller API + DB sync, so it runs in the background.
+	// Both handlers run after the response is sent, so they use background contexts to avoid
+	// cancellation when the client closes the connection after receiving the acknowledgement.
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(`{"status":"ok"}`))
 
@@ -1335,7 +1335,13 @@ func (hdl *Handlers) TellerWebhook(w http.ResponseWriter, r *http.Request) {
 		slog.InfoContext(r.Context(), "Test webhook received")
 
 	case "enrollment.disconnected":
-		hdl.handleEnrollmentDisconnected(r.Context(), webhook.Payload)
+		payload := webhook.Payload
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			defer observability.RecoverAndLog(ctx, "teller_webhook_enrollment_disconnected")
+			hdl.handleEnrollmentDisconnected(ctx, payload)
+		}()
 
 	case "transactions.processed":
 		payload := webhook.Payload
