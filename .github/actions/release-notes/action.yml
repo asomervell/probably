@@ -31,7 +31,7 @@ runs:
         CURRENT_TAG="${{ inputs.version }}"
         
         # Get the previous semantic version tag (skip the current one)
-        PREV_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "^${CURRENT_TAG}$" | head -1)
+        PREV_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | grep -v "^${CURRENT_TAG}$" | head -1 || true)
         
         echo "Current tag: $CURRENT_TAG"
         echo "Previous tag: ${PREV_TAG:-none}"
