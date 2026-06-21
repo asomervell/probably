@@ -32,7 +32,7 @@ runs:
       run: |
         # Find the last semantic version tag (v*.*.* format, not v0.0.0-date-sha)
         # Match exactly vMAJOR.MINOR.PATCH (e.g., v1.2.3, not v1.2.3.4)
-        LAST_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+        LAST_TAG=$(git tag -l 'v[0-9]*.[0-9]*.[0-9]*' --sort=-version:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)
         
         if [ -z "$LAST_TAG" ]; then
           # No semantic version tag found, start at v0.1.0
